@@ -1,0 +1,215 @@
+<!doctype html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<!-- Meta tags for mobile -->
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="mobile-web-app-capable" content="yes">
+	<link rel="shortcut icon" href="favicon.ico">
+	<link rel="apple-touch-icon" href="meta/apple-touch-icon.png">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black">
+	<meta name="HandheldFriendly" content="True">
+	<meta name="MobileOptimized" content="720">
+	<meta name="viewport" content="width=device-width, target-densitydpi=300dpi, initial-scale=1.0, maximum-scale=1, user-scalable=no, minimal-ui">
+	<meta name="format-detection" content="telephone=no" />
+	<title>Splat</title>
+
+	<style>
+		html,body{
+			margin:0;
+		}
+		#canvas-container {
+			width: 100%;
+			text-align:center;
+		}
+		#canvas-container>p{
+			position: fixed;
+			background-color:rgba(0,0,0,0);
+			font-size:22px;
+		}
+	</style>
+</head>
+
+<body>
+	<div id="canvas-container">
+		<p id='text'>text</p>
+		<canvas id="canvas" width="200" height="100" style="border:0px">
+		</canvas>
+	</div>
+
+	<script>
+//0,0 is top left in Canvas
+var mobileRatio = 9/16;
+var height = window.innerHeight * window.devicePixelRatio;
+var width=window.innerWidth * window.devicePixelRatio;
+
+var player={};
+var gravity=.91/2;
+var keymovepower=0.55;
+var friction = 0.95;
+var grids=[100,200,300]; //z values for gird
+var framecount=0;
+
+var spritenames=["frame1.png","frame2.png","frame3.png"];
+var sprites=[];
+var framecount=0;
+//colors
+var blue='rgba(159, 231, 255, 0.95)';
+var fallspeed=88;
+
+var circles=[{x:200,y:200,z:200}];
+
+
+
+function init() {
+	canvas.width  = width
+	canvas.height = height;
+	canvas.imageSmoothingEnabled = true;
+	document.getElementById("canvas").style.width = window.innerWidth + "px";
+	document.getElementById("canvas").style.height = window.innerHeight + "px";
+
+	player.x=width/2; //Init player
+	player.y=80;
+	player.xspeed=0;
+	player.yspeed=0;
+	player.currentsprite=0;
+	player.height=200;
+
+	//Load sprites
+	for (var i = 0; i < spritenames.length; i++) {
+		var drawing = new Image();
+		drawing.src = 'img/' + spritenames[i];
+		sprites.push({name: spritenames[i],image:drawing});
+	}
+
+}
+
+function drawrings(){
+	
+	var ctx = canvas.getContext("2d");
+	ctx.strokeStyle="yellow";
+
+	for (var i = 0; i < circles.length; i++) {
+		ring =  circles[i];
+		ctx.arc(ring.x,ring.y,ring.x+z ,ring.y+z,2*Math.PI);	
+		ring.z--;
+	}
+	
+}
+
+function drawGrid(){
+	var cols=12;
+	var rows=12;
+	var z=100;
+	var ctx = canvas.getContext("2d");
+
+	ctx.strokeStyle="grey";
+	for (var i = grids.length - 1; i >= 0; i--) {
+		var grid = grids[i];
+		for (var x = 0; x < rows; x++) {			
+			for (var y = 0; y < cols; y++) {
+				//Draw a line
+				ctx.beginPath();
+				var m = framecount*5;
+				ctx.lineTo(0 - m,y*height/cols + m);
+				ctx.lineTo(width - framecount,y*height/cols +m );
+				ctx.stroke();
+			}
+			ctx.beginPath();
+			ctx.lineTo(x*width/cols - m ,0 - m);
+			ctx.lineTo(x*width/cols +m,height + m);
+			ctx.stroke();
+
+		}
+		
+	}
+
+
+}
+
+function drawchar(){
+	ctx.drawImage(sprites[player.currentsprite].image,player.x - (player.height) ,player.y - player.height,player.height * 2,player.height * 2);
+}
+
+function drawGame(){
+
+	var ctx = canvas.getContext("2d");
+	//draw Ball
+
+	ctx.fillStyle=blue;
+	ctx.clearRect(0, 0, canvas.width, canvas.height);
+	ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+	//player
+	ctx.drawImage(sprites[player.currentsprite].image,
+		player.x - (player.height),player.y - player.height,
+		player.height * 2,player.height * 2);
+
+	// drawGrid();
+	// ctx.beginPath();
+	// ctx.arc(player.x,player.y,19 * mobileRatio,0,2*Math.PI);
+	// ctx.stroke();
+	// ctx.fill();
+}
+
+function updateGame(){
+	framecount++;
+	if(framecount>10)
+		player.currentsprite=1;
+	else if(framecount>20)
+		player.currentsprite=2;
+	else
+		player.currentsprite=0;
+	if(framecount>30)
+		framecount=0;
+	//Gravity + movement
+	// player.yspeed+=gravity;
+	if (player.jumpCountdown!=0)
+		player.jumpCountdown--;
+	//Calculate key movement for old school keyboards.
+	if (keys[37])	//Left arrow
+		player.xspeed-=keymovepower;
+	if (keys[39])	//Right arrow
+		player.xspeed+=keymovepower;
+	if (keys[38])	//Left arrow
+		player.yspeed-=keymovepower;
+		if (keys[40])	//Left arrow
+		player.yspeed+=keymovepower;
+
+	//Calculate gyro into player pos
+	player.xspeed*=friction;
+	//floor
+	if (player.y>=height - 50){
+		player.yspeed=0;
+	}
+	//Update player pos
+	player.x+=player.xspeed;
+	player.y+=player.yspeed;
+
+	if (player.x<0)
+		player.x=width;
+	if (player.x>width)
+		player.x=0;
+	
+	if (player.dead)
+		init()	
+	text.innerHTML='Speed: ' + fallspeed + "km";
+}
+
+init()
+ 
+var keys = [];
+window.onkeyup = function(e) {keys[e.keyCode]=false;}
+window.onkeydown = function(e) {keys[e.keyCode]=true;}
+
+//Game Loop
+var ONE_FRAME_TIME = 1000 / 60 ;
+var mainloop = function() {
+	updateGame();
+	drawGame();
+};
+setInterval( mainloop, ONE_FRAME_TIME );
+
+</script>
+</body>
+</html>
